@@ -2,22 +2,26 @@
 
 import sys
 import re
+import itertools
+
+#----------------------------------------
 
 # makes spme assumptions aboput the format
+# generic C main prototype
+m_top = '''
+int main(int argc, char** argv)
+{
+'''
 
-# m_top = '''
-# int main(int argc, char** argv)
-# {
-# '''
-
-# m_bot = '''
-#     return 0;
-# }
-# '''
+m_bot = '''
+    return 0;
+}
+'''
 
 #----------------------------------------
 
 def main(file):
+    tab="    " # 4 spaces
     in_file = open(file,"r")
     out_file = open(file+".c","w")
     print("Compiling: "+file)
@@ -63,13 +67,42 @@ def main(file):
         data = code[:tidx]
         text = code[tidx:]
 
+    # rm pseduo-op maekers
+    data = data[1:]
+    text = text[1:]
+
     # print()
     # [ print(x) for x in data ]
     # print()
     # [ print(x) for x in text ]
+    # print()
 
-    for c in code:
-        out_file.write(c+"\n")
+    # data processing
+    for w in data:
+        x = w.split(" ")
+        # print(x)
+        y = []
+        for a in x: # remove the empty spaces
+            if a != '':
+                y.append(a)
+        # print(y)
+        if y[0][-1] == ":":
+            name = y[0][:-1]
+            val = ''.join( str(e)+" " for e in list( itertools.chain( y[2:] ) ) )
+            if   y[1] == ".asciiz":
+                out_file.write("char* " + name + " = " + val + ";\n")
+            elif y[1] == ".word":
+                out_file.write("int " + name + " = " + val + ";\n")
+            elif y[1] == ".float":
+                out_file.write("float " + name + " = " + val + ";\n")
+            elif y[1] == ".double":
+                out_file.write("double " + name + " = " + val + ";\n")
+
+    # code processing
+    out_file.write(m_top)
+    for t in text:
+        out_file.write(tab + t + "\n")
+    out_file.write(m_bot)
 
 #----------------------------------------
 

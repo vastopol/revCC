@@ -6,6 +6,11 @@ reverse compiler for MIPS assembly to C
   * Mars assembler 4.4 is a lightweight interactive development environment (IDE) for programming in MIPS assembly language,
     intended for educational-level use with Patterson and Hennessy's Computer Organization and Design.
 
+MARS vs SPIM
+
+etc...
+
+https://www.assemblylanguagetuts.com/mips-assembly-data-types/
 https://stackoverflow.com/questions/34098596/assembly-files-difference-between-a-s-asm
 https://courses.cs.vt.edu/cs2506/Fall2014/Notes/L04.MIPSAssemblyOverview.pdf
 https://courses.cs.washington.edu/courses/cse378/03wi/lectures/mips-asm-examples.html
