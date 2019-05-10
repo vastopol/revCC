@@ -18,6 +18,12 @@ https://ecs-network.serv.pacific.edu/ecpe-170/tutorials/mips-example-programs
 https://stackoverflow.com/questions/33062405/why-do-we-use-globl-main-in-mips-assembly-language
 https://www.cs.swarthmore.edu/~newhall/cs75/s09/spim_mips_intro.html
 
+compiled c code
+
+http://reliant.colab.duke.edu/c2mips/
+https://godbolt.org/
+http://www.kurtm.net/mipsasm/index.cgi
+
 ----------------------------------------
 
 ## Outline

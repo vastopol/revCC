@@ -98,9 +98,28 @@ def main(file):
             elif y[1] == ".double":
                 out_file.write("double " + name + " = " + val + ";\n")
 
+    syscall_flag = -1
+
     # code processing
     out_file.write(m_top)
     for t in text:
+        chop = t.split()
+        if t == "syscall":
+            if   syscall_flag == 0:  # print int
+                out_file.write("print_int()\n")
+            elif syscall_flag == 4 # print string
+                out_file.write("print_string()\n")
+            elif syscall_flag == 10: # exit
+                out_file.write("exit(0)\n")
+            syscall_flag = -1
+            continue
+        if chop[0] == "li" and chop[1][1:-1] == "v0":
+            syscall_flag = chop[2]
+            continue
+        if chop[0] == "li":
+            out_file.write(tab + chop[1][1:-1] + " = " + chop[2] + ";" + "\n")
+            continue
+
         out_file.write(tab + t + "\n")
     out_file.write(m_bot)
 
