@@ -111,22 +111,25 @@ def main(file):
 
     syscall_flag = -1
     funcall_args = []
+    fun_bounds = False
 
     counter = 0 # updated on continues/loop ends
     end_data = []
 
     if text[0] == "jal main" and text[1] == "li $v0, 10" and text[2] == "syscall":
         out_file.write(enter_main)
-
+        asm = text[3:]
+    else:
+        asm = text
 
     # main function header
     out_file.write(main_top)
 
-    for t in text[3:]:
+    for t in asm:
 
         # possible .data in the code section as a locals
         if t == ".data":
-            end_data = text[counter:]
+            end_data = asm[counter:]
             # print("END", counter, end_data)
             break
 
@@ -153,7 +156,11 @@ def main(file):
         # labels in the code section
         chop = []
         if chup[0][-1] == ":":
-            out_file.write(chup[0] + "\n")
+            if fun_bounds == True:
+                out_file.write( "function " + chup[0][:-1] + "\n" + "{" + "\n")
+                fun_bounds = False
+            else:
+                out_file.write(chup[0] + "\n")
             if len(chup) == 1:
                 # print("AAA")
                 counter += 1
@@ -179,6 +186,7 @@ def main(file):
             elif syscall_flag == "10": # exit
                 out_file.write("exit();\n")
                 out_file.write("}\n")
+                fun_bounds = True
             else:
                 out_file.write("syscall(); // unknown ?\n")
             syscall_flag = -1
@@ -188,6 +196,7 @@ def main(file):
         # return
         if chop[0] == "jr" and chop[1] == "$ra":
             out_file.write("}\n")
+            fun_bounds = True
             counter += 1
             continue
 
@@ -198,7 +207,7 @@ def main(file):
                 counter += 1
                 continue
             if chop[0] == "move":
-                out_file.write(tab + "return " + "value?" + ";\n")
+                out_file.write(tab + "// return " + "value?" + ";\n")
 
         # loads : immediate, address, byte, word
         if chop[0] == "li" or chop[0] == "la" or chop[0] == "lb" or chop[0] == "lw":
@@ -210,7 +219,7 @@ def main(file):
 
         out_file.write(tab + t + "\n")
         counter += 1
-    # end text for loop
+    # end for loop
 
     #----------------------------------------
 
