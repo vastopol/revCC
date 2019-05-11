@@ -103,3 +103,7 @@ lw $fp -8($fp)
 addu $sp $sp 8
 jr $ra
 ```
+
+
+
+functions should have the `}` brace printed for the ```jr $ra```
