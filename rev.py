@@ -175,16 +175,42 @@ def main(file):
         # syscall
         if chop[0] == "syscall":
             out_file.write(tab)
-            if   syscall_flag == "1":  # print int
+            if   syscall_flag == "1":
                 out_file.write("print_int();\n")
-            elif syscall_flag == "4": # print string
+            elif syscall_flag == "2":
+                out_file.write("print_float();\n")
+            elif syscall_flag == "3":
+                out_file.write("print_double();\n")
+            elif syscall_flag == "4":
                 out_file.write("print_string();\n")
-            elif syscall_flag == "5": # read int
+            elif syscall_flag == "5":
                 out_file.write("read_int();\n")
+            elif syscall_flag == "6":
+                out_file.write("read_float();\n")
+            elif syscall_flag == "7":
+                out_file.write("read_double();\n")
+            elif syscall_flag == "8":
+                out_file.write("read_string();\n")
             elif syscall_flag == "9": # sbrk/heapAlloc
                 out_file.write("sbrk();\n")
-            elif syscall_flag == "10": # exit
+            elif syscall_flag == "10": # exit  - end of function
                 out_file.write("exit();\n")
+                out_file.write("}\n")
+                fun_bounds = True
+            elif syscall_flag == "11":
+                out_file.write("print_char();\n")
+            elif syscall_flag == "12":
+                out_file.write("read_char();\n")
+            elif syscall_flag == "13":
+                out_file.write("open();\n")
+            elif syscall_flag == "14":
+                out_file.write("read();\n")
+            elif syscall_flag == "15":
+                out_file.write("write();\n")
+            elif syscall_flag == "16":
+                out_file.write("close();\n")
+            elif syscall_flag == "17": # exit2  - end of function
+                out_file.write("exit2();\n")
                 out_file.write("}\n")
                 fun_bounds = True
             else:
@@ -193,7 +219,7 @@ def main(file):
             counter += 1
             continue
 
-        # return
+        # return  - end of function
         if chop[0] == "jr" and chop[1] == "$ra":
             out_file.write("}\n")
             fun_bounds = True
