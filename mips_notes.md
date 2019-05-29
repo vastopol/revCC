@@ -184,19 +184,25 @@ system calls
 5. read_int
     * Read integer number from user
     * Integer returned in $v0
+    * read an entire line of input up to and including the newline character.
 
 6. read_float
     * Read floating-point number from user
     * Float returned in $f0
+    * read an entire line of input up to and including the newline character.
 
 7. read_double
     * Read double floating-point number from user
     * Double returned in $f0
+    * read an entire line of input up to and including the newline character.
 
 8. read_string
     * Works the same as Standard C Library fgets() function.
     * $a0 = memory address of string input buffer
     * $a1 = length of string buffer (n)
+    * The programmer must first allocate a buffer to receive the string
+    * The service reads up to n-1 characters into a buffer and terminates the string with a null character.
+    * If fewer than n-1 characters are in the current line, the service reads up to and including the newline and terminates the string with a null character.    
 
 9. sbrk
     * Returns the address to a block of memory containing n additional bytes.

@@ -1,13 +1,17 @@
 #!/bin/bash
 
-rm mips/*.c
-
-for F in mips/*
+for F in mips/*.S
 do
+
+    echo
     ./rev.py $F
     echo
-    cat $F.c
+    echo "----------------------------------------"
+
     echo
+    cat $F.c
+    echo "----------------------------------------"
+
 done
 
 rm mips/*.c

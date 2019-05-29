@@ -27,7 +27,7 @@ def main(file):
     tab = "    " # 4 spaces
     in_file = open(file,"r")
     out_file = open(file+".c","w")
-    print("Compiling: "+file)
+    print("Decompiling: "+file)
 
     # strip empty space and comments
     code = []
@@ -83,7 +83,8 @@ def main(file):
 
     #----------------------------------------
 
-    # begining data processing
+    # DATA PROCESSING
+
     for w in data:
         x = w.split(" ")
         # print(x)
@@ -106,7 +107,7 @@ def main(file):
 
     #----------------------------------------
 
-    # code processing
+    # CODE PROCESSING
     # makes some assumptions aboput the format
 
     syscall_flag = -1
@@ -159,14 +160,18 @@ def main(file):
             if fun_bounds == True:
                 out_file.write( "function " + chup[0][:-1] + "\n" + "{" + "\n")
                 fun_bounds = False
+            elif chup[0][:-1] == "main":
+                # print("AAA")
+                pass
             else:
                 out_file.write(chup[0] + "\n")
-            if len(chup) == 1:
-                # print("AAA")
+
+            if len(chup) == 1: # label on line by itself
+                # print("BBB")
                 counter += 1
                 continue
             else:
-                # print("BBB")
+                # print("CCC")
                 chop = chup[1:]
         else:
             chop = chup
@@ -176,31 +181,31 @@ def main(file):
         if chop[0] == "syscall":
             out_file.write(tab)
             if   syscall_flag == "1":
-                out_file.write("print_int();\n")
+                out_file.write("print_int(a0);\n")
             elif syscall_flag == "2":
-                out_file.write("print_float();\n")
+                out_file.write("print_float(f12);\n")
             elif syscall_flag == "3":
-                out_file.write("print_double();\n")
+                out_file.write("print_double(f12);\n")
             elif syscall_flag == "4":
-                out_file.write("print_string();\n")
+                out_file.write("print_string(a0);\n")
             elif syscall_flag == "5":
-                out_file.write("read_int();\n")
+                out_file.write("v0 = read_int();\n")
             elif syscall_flag == "6":
-                out_file.write("read_float();\n")
+                out_file.write("f0 = read_float();\n")
             elif syscall_flag == "7":
-                out_file.write("read_double();\n")
-            elif syscall_flag == "8":
-                out_file.write("read_string();\n")
-            elif syscall_flag == "9": # sbrk/heapAlloc
-                out_file.write("sbrk();\n")
+                out_file.write("f0 = read_double();\n")
+            elif syscall_flag == "8": # fgets
+                out_file.write("read_string(a0,a1);\n")
+            elif syscall_flag == "9": # heapAlloc
+                out_file.write("v0 = sbrk(a0);\n")
             elif syscall_flag == "10": # exit  - end of function
                 out_file.write("exit();\n")
-                out_file.write("}\n")
+                out_file.write("}\n\n")
                 fun_bounds = True
             elif syscall_flag == "11":
-                out_file.write("print_char();\n")
+                out_file.write("print_char(a0);\n")
             elif syscall_flag == "12":
-                out_file.write("read_char();\n")
+                out_file.write("v0 = read_char();\n")
             elif syscall_flag == "13":
                 out_file.write("open();\n")
             elif syscall_flag == "14":
@@ -210,8 +215,8 @@ def main(file):
             elif syscall_flag == "16":
                 out_file.write("close();\n")
             elif syscall_flag == "17": # exit2  - end of function
-                out_file.write("exit2();\n")
-                out_file.write("}\n")
+                out_file.write("exit2(a0);\n")
+                out_file.write("}\n\n")
                 fun_bounds = True
             else:
                 out_file.write("syscall(); // unknown ?\n")
@@ -221,7 +226,7 @@ def main(file):
 
         # return  - end of function
         if chop[0] == "jr" and chop[1] == "$ra":
-            out_file.write("}\n")
+            out_file.write("}\n\n")
             fun_bounds = True
             counter += 1
             continue
@@ -241,7 +246,50 @@ def main(file):
             counter += 1
             continue
 
-        # etc...
+        # add
+        if   chop[0] == "add" or chop[0] == "addu":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " + " + chop[3][1:] + ";" + "\n")
+            continue
+        elif chop[0] == "addi" or chop[0] == "addiu":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " + " + chop[3] + ";" + "\n")
+            continue
+
+        # subtract
+        if   chop[0] == "sub" or chop[0] == "subu":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " - " + chop[3][1:] + ";" + "\n")
+            continue
+
+        # multiply (pseduo op)
+        if   chop[0] == "mul": # without overflow
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " * " + chop[3][1:] + ";" + "\n")
+            continue
+
+        # mult, div, divu
+        # require using hi/lo special registers
+
+        # and
+        if   chop[0] == "and":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " & " + chop[3][1:] + ";" + "\n")
+            continue
+        elif chop[0] == "andi":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " & " + chop[3] + ";" + "\n")
+            continue
+
+        # or
+        if   chop[0] == "or":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " | " + chop[3][1:] + ";" + "\n")
+            continue
+        elif chop[0] == "ori":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " | " + chop[3] + ";" + "\n")
+            continue
+
+        # shifts
+        if   chop[0] == "srl":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " >> " + chop[3] + ";" + "\n")
+            continue
+        elif chop[0] == "sll":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " << " + chop[3] + ";" + "\n")
+            continue
 
         out_file.write(tab + t + "\n")
         counter += 1
@@ -249,8 +297,9 @@ def main(file):
 
     #----------------------------------------
 
+    # DATA PROCESSING
     # see if the was some other local data ain the file
-    # cut and paste from above
+
     if end_data:
         for w in end_data:
             x = w.split(" ")
@@ -274,6 +323,7 @@ def main(file):
 
 #========================================
 
+# command line handler
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print("Error: Missing Arguments")
