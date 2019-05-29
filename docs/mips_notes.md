@@ -1,51 +1,61 @@
 ## Outline
 
-should have parts/sections:
-```
-    .text
-        main:
-    .data
-```
-
-havent got multi data sections yet
+should have parts/sections for code and data separated
 globals dont always appear for main in each file
 any .globl should appear in the .text
 typical assembly code outline
 
 ```
+.data
+        var: .word 0
+        str: .stringz "..."
+
 .text
         .globl main
 
     main:
-
-        ... code ...    
-
+        ...
+        jal fun
+        ...
         li    $v0,10        # exit
         syscall
 
 
     fun:
+        ...
+        jr $ra
 
-        ... code ...
-
-.data
-
-    str: .stringz "..."
-    var: .word 0
 ```
 
 main is more like a special routine with a unique structure
 the other functions are called by the main routine
 main ends with a load immediate 10 and syscall
 
-the other functions will sometimes have the prologue and epilogue
-might adjust stack pointer and also the frame pointer
-functions then end with a jr register
 
+Various possible prototypes
+```
+// assembly
 main:
+
+// C
+int main();
+int main(void);
+int main(int argc, char **argv);
+int main(int argc, char *argv[]);
+int main(int argc, char *argv[], char *envp[]);
+
+// Java
+public static void main(String[] args)
+
+```
+
 sometimes first function and .globl then end on exit
 or first things in text is wrapper routine stub to jump to main
 then main has more uniform function structure with prologue/epilogue
+
+the other functions will sometimes have the prologue and epilogue
+might adjust stack pointer and also the frame pointer
+functions then end with a jr register
 
 ```
 .text
@@ -85,30 +95,30 @@ functions should have the `}` brace printed for the ```jr $ra```
 
 
 
-start each with
+object oriented layout example
 
 ```
 .data
 
-<VTables>
+    <VTables>
 
 .text
 
-<Code for Functions>
+    <Code for Functions>
 
-start each function with
+    # start each function with
 
-  sw $fp -8($sp)
-  move $fp $sp
-  subu $sp $sp <size of args>
-  sw $ra -4($fp)
+      sw $fp -8($sp)
+      move $fp $sp
+      subu $sp $sp <size of args>
+      sw $ra -4($fp)
 
-end each function with
+    # end each function with
 
-  lw $ra -4($fp)
-  lw $fp -8($fp)
-  addu $sp $sp 8
-  jr $ra
+      lw $ra -4($fp)
+      lw $fp -8($fp)
+      addu $sp $sp 8
+      jr $ra
 ```
 
 

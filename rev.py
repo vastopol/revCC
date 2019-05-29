@@ -6,7 +6,9 @@ import itertools
 
 #========================================
 
-# generic C main prototype
+# global data section
+
+# generic hybrid C/Java main function prototype
 main_top = '''
 void main(int argc, char** argv)
 {
@@ -71,7 +73,7 @@ def main(file):
         data = code[:tidx]
         text = code[tidx:]
 
-    # rm pseduo-op maekers
+    # rm pseduo-op markers
     data = data[1:]
     text = text[1:]
 
@@ -84,26 +86,7 @@ def main(file):
     #----------------------------------------
 
     # DATA PROCESSING
-
-    for w in data:
-        x = w.split(" ")
-        # print(x)
-        y = []
-        for a in x: # remove the empty spaces
-            if a != '':
-                y.append(a)
-        # print(y)
-        if y[0][-1] == ":" and len(y) > 1: # have to check if only label on line
-            name = y[0][:-1]
-            val = ''.join( str(e)+" " for e in list( itertools.chain( y[2:] ) ) )
-            if   y[1] == ".asciiz":
-                out_file.write("char* " + name + " = " + val + ";\n")
-            elif y[1] == ".word":
-                out_file.write("int " + name + " = " + val + ";\n")
-            elif y[1] == ".float":
-                out_file.write("float " + name + " = " + val + ";\n")
-            elif y[1] == ".double":
-                out_file.write("double " + name + " = " + val + ";\n")
+    data_process(data,out_file)
 
     #----------------------------------------
 
@@ -111,24 +94,21 @@ def main(file):
     # makes some assumptions aboput the format
 
     syscall_flag = -1
+    counter = 0  # updated on continues/loop ends (TBH not 100% sure though..)
+    end_data = []
     funcall_args = []
     fun_bounds = False
 
-    counter = 0 # updated on continues/loop ends
-    end_data = []
-
+    # special case for mini java compiler
     if text[0] == "jal main" and text[1] == "li $v0, 10" and text[2] == "syscall":
         out_file.write(enter_main)
         asm = text[3:]
     else:
         asm = text
 
-    # main function header
-    out_file.write(main_top)
-
+    # .text code body
     for t in asm:
-
-        # possible .data in the code section as a locals
+        # possible .data in the code section (some compiler generated code)
         if t == ".data":
             end_data = asm[counter:]
             # print("END", counter, end_data)
@@ -162,7 +142,7 @@ def main(file):
                 fun_bounds = False
             elif chup[0][:-1] == "main":
                 # print("AAA")
-                pass
+                out_file.write(main_top) # main function header
             else:
                 out_file.write(chup[0] + "\n")
 
@@ -177,7 +157,7 @@ def main(file):
             chop = chup
         # print(chop)
 
-        # syscall
+        # SYSCALL
         if chop[0] == "syscall":
             out_file.write(tab)
             if   syscall_flag == "1":
@@ -224,7 +204,7 @@ def main(file):
             counter += 1
             continue
 
-        # return  - end of function
+        # RETURN  - end of function
         if chop[0] == "jr" and chop[1] == "$ra":
             out_file.write("}\n\n")
             fun_bounds = True
@@ -237,16 +217,44 @@ def main(file):
                 syscall_flag = chop[2]
                 counter += 1
                 continue
-            if chop[0] == "move":
-                out_file.write(tab + "// return " + "value?" + ";\n")
+            if chop[0] == "move": # note possible return value in output
+                out_file.write(tab + "// return value ?\n")
 
-        # loads : immediate, address, byte, word
-        if chop[0] == "li" or chop[0] == "la" or chop[0] == "lb" or chop[0] == "lw":
+        # JUMP
+        if chop[0] == "j":
+            out_file.write(tab + "goto " + chop[1] + ";" + "\n")
+            continue
+        if chop[0] == "jal": # function call
+            out_file.write(tab + chop[1] + "()" + ";" + "\n") # should add the params in a loop
+            continue
+        if chop[0] == "jalr": # indirect function call
+            out_file.write(tab + t + " // indirect function call" + "\n")
+            continue
+
+        # LOAD : immediate, address, byte, word
+        if chop[0] == "lw" or chop[0] == "li" or chop[0] == "la" or chop[0] == "lb":
             out_file.write(tab + chop[1][1:] + " = " + chop[2] + ";" + "\n")
             counter += 1
             continue
 
-        # add
+        # STORE
+        # proably nor 100% correct for function calls
+        if chop[0] == "sw" or chop[0] == "sb":
+            out_file.write(tab + chop[2] + " = " + chop[1][1:] + ";" + "\n")
+            continue
+
+        # MOVE
+        if chop[0] == "move":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + ";" + "\n")
+            continue
+        elif chop[0] == "mfhi":
+            out_file.write(tab + chop[1][1:] + " = " + "hi" + ";" + "\n")
+            continue
+        elif chop[0] == "mflo":
+            out_file.write(tab + chop[1][1:] + " = " + "lo" + ";" + "\n")
+            continue
+
+        # ADD
         if   chop[0] == "add" or chop[0] == "addu":
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " + " + chop[3][1:] + ";" + "\n")
             continue
@@ -254,20 +262,25 @@ def main(file):
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " + " + chop[3] + ";" + "\n")
             continue
 
-        # subtract
-        if   chop[0] == "sub" or chop[0] == "subu":
+        # SUB
+        if   chop[0] == "sub":
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " - " + chop[3][1:] + ";" + "\n")
             continue
-
-        # multiply (pseduo op)
-        if   chop[0] == "mul": # without overflow
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " * " + chop[3][1:] + ";" + "\n")
+        elif chop[0] == "subu":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " - " + chop[3] + ";" + "\n")
             continue
 
-        # mult, div, divu
+        # MUL (pseduo op)
+        if   chop[0] == "mul": # without overflow
+            if chop[3][0] == "$": # register
+                out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " * " + chop[3][1:] + ";" + "\n")
+            else: # immediate
+                out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " * " + chop[3] + ";" + "\n")
+            continue
+        # MULT, DIV, DIVU
         # require using hi/lo special registers
 
-        # and
+        # AND
         if   chop[0] == "and":
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " & " + chop[3][1:] + ";" + "\n")
             continue
@@ -275,7 +288,7 @@ def main(file):
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " & " + chop[3] + ";" + "\n")
             continue
 
-        # or
+        # OR
         if   chop[0] == "or":
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " | " + chop[3][1:] + ";" + "\n")
             continue
@@ -283,7 +296,7 @@ def main(file):
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " | " + chop[3] + ";" + "\n")
             continue
 
-        # shifts
+        # SHIFT
         if   chop[0] == "srl":
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " >> " + chop[3] + ";" + "\n")
             continue
@@ -291,6 +304,7 @@ def main(file):
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " << " + chop[3] + ";" + "\n")
             continue
 
+        # etc...
         out_file.write(tab + t + "\n")
         counter += 1
     # end for loop
@@ -298,36 +312,40 @@ def main(file):
     #----------------------------------------
 
     # DATA PROCESSING
-    # see if the was some other local data ain the file
-
     if end_data:
-        for w in end_data:
-            x = w.split(" ")
-            # print(x)
-            y = []
-            for a in x: # remove the empty spaces
-                if a != '':
-                    y.append(a)
-            # print(y)
-            if y[0][-1] == ":" and len(y) > 1: # have to check if only label on line
-                name = y[0][:-1]
-                val = ''.join( str(e)+" " for e in list( itertools.chain( y[2:] ) ) )
-                if   y[1] == ".asciiz":
-                    out_file.write("char* " + name + " = " + val + ";\n")
-                elif y[1] == ".word":
-                    out_file.write("int " + name + " = " + val + ";\n")
-                elif y[1] == ".float":
-                    out_file.write("float " + name + " = " + val + ";\n")
-                elif y[1] == ".double":
-                    out_file.write("double " + name + " = " + val + ";\n")
+        data_process(end_data,out_file)
 
 #========================================
 
-# command line handler
+# DATA: int, float, double, char*, ...
+def data_process(data,out_file):
+    for w in data:
+        x = w.split(" ")
+        # print(x)
+        y = []
+        for a in x: # remove the empty spaces
+            if a != '':
+                y.append(a)
+        # print(y)
+        if y[0][-1] == ":" and len(y) > 1: # have to check if only label on line
+            name = y[0][:-1]
+            val = ''.join( str(e)+" " for e in list( itertools.chain( y[2:] ) ) ) # adds an extra space before the semicolon
+            if   y[1] == ".asciiz":
+                out_file.write("char* " + name + " = " + val + ";\n")
+            elif y[1] == ".word":
+                out_file.write("int " + name + " = " + val + ";\n")
+            elif y[1] == ".float":
+                out_file.write("float " + name + " = " + val + ";\n")
+            elif y[1] == ".double":
+                out_file.write("double " + name + " = " + val + ";\n")
+
+#========================================
+
+# handle command line && redirect to main
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print("Error: Missing Arguments")
-        print("Usage: $ ./rev.py <file>")
+        print("Usage: $ ./rev.py <files>")
         sys.exit(1)
     files = sys.argv[1:]
     for file in files:
