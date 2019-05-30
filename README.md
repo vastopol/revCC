@@ -1,14 +1,12 @@
 # revCC
 
-reverse compiler for MIPS assembly to C
+Decompiler for MIPS assembly to C like pseduocode
 
-* MIPS
+* MARS vs SPIM
   * Mars assembler 4.4 is a lightweight interactive development environment (IDE) for programming in MIPS assembly language,
     intended for educational-level use with Patterson and Hennessy's Computer Organization and Design.
 
-MARS vs SPIM
-
-etc...
+resources etc...
 
 * https://www.assemblylanguagetuts.com/mips-assembly-data-types/
 * https://stackoverflow.com/questions/34098596/assembly-files-difference-between-a-s-asm
@@ -20,6 +18,12 @@ etc...
 * https://www.cs.swarthmore.edu/~newhall/cs75/s09/spim_mips_intro.html
 * http://www2.engr.arizona.edu/~ece369/Resources/spim/MIPSReference.pdf
 * https://www.assemblylanguagetuts.com/mips-multiplication-mul-mult-sll/
+* http://courses.missouristate.edu/kenvollmar/mars/help/syscallhelp.html
+* http://courses.missouristate.edu/kenvollmar/mars/help/MarsHelpIntro.html
+* https://www2.cs.duke.edu/courses/fall13/compsci250/MIPS32_QRC.pdf
+* http://students.cs.tamu.edu/tanzir/csce350/reference/assembler_dir.html
+* http://www.tfinley.net/notes/cps104/mips.html
+* http://www.cs.jhu.edu/~cs333/reference.html
 
 compiled c code
 

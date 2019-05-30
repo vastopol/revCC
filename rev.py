@@ -134,11 +134,11 @@ def main(file):
                     chup.append(b)
         # print(chup)
 
-        # labels in the code section
+        # LABELS in the code section
         chop = []
         if chup[0][-1] == ":":
             if fun_bounds == True:
-                out_file.write( "function " + chup[0][:-1] + "\n" + "{" + "\n")
+                out_file.write( "function " + chup[0][:-1] + "\n{\n")
                 fun_bounds = False
             elif chup[0][:-1] == "main":
                 # print("AAA")
@@ -157,7 +157,23 @@ def main(file):
             chop = chup
         # print(chop)
 
-        # SYSCALL
+        # MACROS (common idioms)
+        if chop[0] == "done":
+            out_file.write(tab)
+            out_file.write("exit();\n")
+            out_file.write("}\n\n")
+            fun_bounds = True
+            continue
+        elif chop[0] == "terminate":
+            out_file.write(tab)
+            out_file.write("exit2(" + chop[1] + ");\n")
+            out_file.write("}\n\n")
+            fun_bounds = True
+            continue
+
+        # SYSCALLS
+        #  1 - 17  SPIM
+        # 30 - 59  MARS
         if chop[0] == "syscall":
             out_file.write(tab)
             if   syscall_flag == "1":
@@ -187,13 +203,13 @@ def main(file):
             elif syscall_flag == "12":
                 out_file.write("v0 = read_char();\n")
             elif syscall_flag == "13":
-                out_file.write("open();\n")
+                out_file.write("v0 = open(a0,a1,a2);\n")
             elif syscall_flag == "14":
-                out_file.write("read();\n")
+                out_file.write("v0 = read(a0,a1,a2);\n")
             elif syscall_flag == "15":
-                out_file.write("write();\n")
+                out_file.write("v0 = write(a0,a1,a2);\n")
             elif syscall_flag == "16":
-                out_file.write("close();\n")
+                out_file.write("close(a0);\n")
             elif syscall_flag == "17": # exit2  - end of function
                 out_file.write("exit2(a0);\n")
                 out_file.write("}\n\n")
@@ -201,13 +217,6 @@ def main(file):
             else:
                 out_file.write("syscall(); // unknown ?\n")
             syscall_flag = -1
-            counter += 1
-            continue
-
-        # RETURN  - end of function
-        if chop[0] == "jr" and chop[1] == "$ra":
-            out_file.write("}\n\n")
-            fun_bounds = True
             counter += 1
             continue
 
@@ -220,88 +229,188 @@ def main(file):
             if chop[0] == "move": # note possible return value in output
                 out_file.write(tab + "// return value ?\n")
 
+        # RETURN  - end of function
+        if chop[0] == "jr" and chop[1] == "$ra":
+            out_file.write("}\n\n")
+            fun_bounds = True
+            counter += 1
+            continue
+
         # JUMP
-        if chop[0] == "j":
-            out_file.write(tab + "goto " + chop[1] + ";" + "\n")
+        if   chop[0] == "j":
+            out_file.write(tab + "goto " + chop[1] + ";\n")
             continue
-        if chop[0] == "jal": # function call
-            out_file.write(tab + chop[1] + "()" + ";" + "\n") # should add the params in a loop
+        elif chop[0] == "jr":
+            out_file.write(tab + "goto *" + chop[1][1:] + "; // indirect jump\n") # should add the params in a loop
             continue
-        if chop[0] == "jalr": # indirect function call
-            out_file.write(tab + t + " // indirect function call" + "\n")
+        elif chop[0] == "jal": # function call
+            out_file.write(tab + chop[1] + "();\n") # should add the params in a loop
+            continue
+        elif chop[0] == "jalr": # indirect function call
+            out_file.write(tab + "(*" + chop[1][1:] + ")(); // indirect function call\n") # should add the params in a loop
+            continue
+
+        # BRANCH
+        if chop[0] == "b":
+            out_file.write(tab + "goto " + chop[1] + ";\n")
+            continue
+        elif chop[0] == "bal": # function call
+            out_file.write(tab + chop[1] + "();\n") # should add the params in a loop
+            continue
+        elif chop[0] == "beq":
+            out_file.write(tab + "if(" + chop[1][1:] + " == " + chop[2][1:] + ")\n")
+            out_file.write(tab + tab + "goto " + chop[3] + ";\n")
+            continue
+        elif chop[0] == "beqz":
+            out_file.write(tab + "if(" + chop[1][1:] + " == 0)\n")
+            out_file.write(tab + tab + "goto " + chop[2] + ";\n")
+            continue
+        elif chop[0] == "bne":
+            out_file.write(tab + "if(" + chop[1][1:] + " != " + chop[2][1:] + ")\n")
+            out_file.write(tab + tab + "goto " + chop[3] + ";\n")
+            continue
+        elif chop[0] == "bnez":
+            out_file.write(tab + "if(" + chop[1][1:] + " != 0)\n")
+            out_file.write(tab + tab + "goto " + chop[2] + ";\n")
+            continue
+        elif chop[0] == "bgt":
+            out_file.write(tab + "if(" + chop[1][1:] + " > " + chop[2][1:] + ")\n")
+            out_file.write(tab + tab + "goto " + chop[3] + ";\n")
+            continue
+        elif chop[0] == "bgtz":
+            out_file.write(tab + "if(" + chop[1][1:] + " > 0)\n")
+            out_file.write(tab + tab + "goto " + chop[2] + ";\n")
+            continue
+        elif chop[0] == "bge":
+            out_file.write(tab + "if(" + chop[1][1:] + " >= " + chop[2][1:] + ")\n")
+            out_file.write(tab + tab + "goto " + chop[3] + ";\n")
+            continue
+        elif chop[0] == "bgez":
+            out_file.write(tab + "if(" + chop[1][1:] + " >= 0)\n")
+            out_file.write(tab + tab + "goto " + chop[2] + ";\n")
+            continue
+        elif chop[0] == "bgezla": # function call
+            out_file.write(tab + "if(" + chop[1][1:] + " >= 0)\n")
+            out_file.write(tab + tab + chop[2] + "();\n")
+            continue
+        elif chop[0] == "blt":
+            out_file.write(tab + "if(" + chop[1][1:] + " < " + chop[2][1:] + ")\n")
+            out_file.write(tab + tab + "goto " + chop[3] + ";\n")
+            continue
+        elif chop[0] == "bltz":
+            out_file.write(tab + "if(" + chop[1][1:] + " < 0)\n")
+            out_file.write(tab + tab + "goto " + chop[2] + ";\n")
+            continue
+        elif chop[0] == "ble":
+            out_file.write(tab + "if(" + chop[1][1:] + " <= " + chop[2][1:] + ")\n")
+            out_file.write(tab + tab + "goto " + chop[3] + ";\n")
+            continue
+        elif chop[0] == "blez":
+            out_file.write(tab + "if(" + chop[1][1:] + " <= 0)\n")
+            out_file.write(tab + tab + "goto " + chop[2] + ";\n")
+            continue
+        elif chop[0] == "blezla": # function call
+            out_file.write(tab + "if(" + chop[1][1:] + " <= 0)\n")
+            out_file.write(tab + tab + chop[2] + "();\n")
             continue
 
         # LOAD : immediate, address, byte, word
         if chop[0] == "lw" or chop[0] == "li" or chop[0] == "la" or chop[0] == "lb":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2] + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = " + chop[2] + ";\n")
             counter += 1
             continue
 
         # STORE
         # proably nor 100% correct for function calls
         if chop[0] == "sw" or chop[0] == "sb":
-            out_file.write(tab + chop[2] + " = " + chop[1][1:] + ";" + "\n")
+            out_file.write(tab + chop[2] + " = " + chop[1][1:] + ";\n")
             continue
 
         # MOVE
         if chop[0] == "move":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + ";\n")
             continue
         elif chop[0] == "mfhi":
-            out_file.write(tab + chop[1][1:] + " = " + "hi" + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = hi;\n")
             continue
         elif chop[0] == "mflo":
-            out_file.write(tab + chop[1][1:] + " = " + "lo" + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = lo;\n")
             continue
+
+        ## MATH
 
         # ADD
         if   chop[0] == "add" or chop[0] == "addu":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " + " + chop[3][1:] + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " + " + chop[3][1:] + ";\n")
             continue
         elif chop[0] == "addi" or chop[0] == "addiu":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " + " + chop[3] + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " + " + chop[3] + ";\n")
             continue
 
         # SUB
         if   chop[0] == "sub":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " - " + chop[3][1:] + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " - " + chop[3][1:] + ";\n")
             continue
         elif chop[0] == "subu":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " - " + chop[3] + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " - " + chop[3] + ";\n")
             continue
 
         # MUL (pseduo op)
         if   chop[0] == "mul": # without overflow
             if chop[3][0] == "$": # register
-                out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " * " + chop[3][1:] + ";" + "\n")
+                out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " * " + chop[3][1:] + ";\n")
             else: # immediate
-                out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " * " + chop[3] + ";" + "\n")
+                out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " * " + chop[3] + ";\n")
             continue
         # MULT, DIV, DIVU
         # require using hi/lo special registers
 
+        # SHIFT
+        if   chop[0] == "srl":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " >> " + chop[3] + ";\n")
+            continue
+        elif chop[0] == "sll":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " << " + chop[3] + ";\n")
+            continue
+
+        ## LOGIC
+
         # AND
         if   chop[0] == "and":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " & " + chop[3][1:] + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " & " + chop[3][1:] + ";\n")
             continue
         elif chop[0] == "andi":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " & " + chop[3] + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " & " + chop[3] + ";\n")
             continue
 
         # OR
         if   chop[0] == "or":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " | " + chop[3][1:] + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " | " + chop[3][1:] + ";\n")
             continue
         elif chop[0] == "ori":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " | " + chop[3] + ";" + "\n")
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " | " + chop[3] + ";\n")
             continue
 
-        # SHIFT
-        if   chop[0] == "srl":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " >> " + chop[3] + ";" + "\n")
+        # XOR
+        if   chop[0] == "xor":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " ^ " + chop[3][1:] + ";\n")
             continue
-        elif chop[0] == "sll":
-            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " << " + chop[3] + ";" + "\n")
+        elif chop[0] == "xori":
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " ^ " + chop[3] + ";\n")
+            continue
+
+        # NOR
+        if   chop[0] == "nor":
+            out_file.write(tab + chop[1][1:] + " = ~(" + chop[2][1:] + " | " + chop[3][1:] + ");\n")
+            continue
+
+        # NOT
+        if   chop[0] == "not":
+            out_file.write(tab + chop[1][1:] + " = ~" + chop[2][1:] + ";\n")
+            continue
+
+        # NOP
+        if chop[0] == "nop":
             continue
 
         # etc...
@@ -330,7 +439,7 @@ def data_process(data,out_file):
         if y[0][-1] == ":" and len(y) > 1: # have to check if only label on line
             name = y[0][:-1]
             val = ''.join( str(e)+" " for e in list( itertools.chain( y[2:] ) ) ) # adds an extra space before the semicolon
-            if   y[1] == ".asciiz":
+            if   y[1] == ".asciiz" or y[1] == "ascii":
                 out_file.write("char* " + name + " = " + val + ";\n")
             elif y[1] == ".word":
                 out_file.write("int " + name + " = " + val + ";\n")
@@ -338,6 +447,8 @@ def data_process(data,out_file):
                 out_file.write("float " + name + " = " + val + ";\n")
             elif y[1] == ".double":
                 out_file.write("double " + name + " = " + val + ";\n")
+            elif y[1] == ".space":
+                out_file.write("array[" + val.strip() + "] " + name +";\n") # probably a generic array
 
 #========================================
 
