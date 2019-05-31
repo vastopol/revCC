@@ -4,6 +4,9 @@ import sys
 import re
 import itertools
 
+# main is so many if/else branches in a loop
+# should probably be one massive case statement in a loop instead ...
+
 #========================================
 
 # global data section
@@ -94,10 +97,10 @@ def main(file):
     # makes some assumptions aboput the format
 
     syscall_flag = -1
-    counter = 0  # updated on continues/loop ends (TBH not 100% sure though..)
+    counter = 0  # updated on continues/loop ends (TBH not 100% sure though... seriously doubt this is properly tracking the data...)
     end_data = []
-    funcall_args = []
-    fun_bounds = False
+    funcall_args = [] # i dont even think thi is used yet ???
+    fun_bounds = False #  updated only in a few places see: exit, exit2, ... (TBH not 100% sure though... seriously doubt this is properly tracking the data...)
 
     # special case for mini java compiler
     if text[0] == "jal main" and text[1] == "li $v0, 10" and text[2] == "syscall":
@@ -134,6 +137,8 @@ def main(file):
                     chup.append(b)
         # print(chup)
 
+        ## ----- LABELS ----- ##
+
         # LABELS in the code section
         chop = []
         if chup[0][-1] == ":":
@@ -157,6 +162,8 @@ def main(file):
             chop = chup
         # print(chop)
 
+        ## ----- MACRO EXPANSION ----- ##
+
         # MACROS (common idioms)
         if chop[0] == "done":
             out_file.write(tab)
@@ -171,9 +178,11 @@ def main(file):
             fun_bounds = True
             continue
 
+        ## ----- SYSCALLs ----- ##
+
         # SYSCALLS
         #  1 - 17  SPIM
-        # 30 - 59  MARS
+        # 30 - 59  MARS, (not used)	37-39, 45-49
         if chop[0] == "syscall":
             out_file.write(tab)
             if   syscall_flag == "1":
@@ -214,11 +223,31 @@ def main(file):
                 out_file.write("exit2(a0);\n")
                 out_file.write("}\n\n")
                 fun_bounds = True
+            # start MARS specific syscalls
+            elif syscall_flag == "30":
+                out_file.write("time(a0,a1);\n") # a0,a1 probably passed by reference and written into ?
+            elif syscall_flag == "31":
+                out_file.write("MIDI_out(a0,a1,a2);\n") # Generate tone and return immediately.
+            elif syscall_flag == "32":
+                out_file.write("sleep(a0);\n") # Causes the MARS Java thread to sleep for (at least) the specified number of milliseconds.
+            elif syscall_flag == "33":
+                out_file.write("MIDI_out_synchronous(a0,a1,a2);\n") # Generate tone and return upon tone completion.
+            elif syscall_flag == "34":
+                out_file.write("print_int_in_ hex(a0);\n")
+            elif syscall_flag == "35":
+                out_file.write("print_int_in_binary(a0);\n")
+            elif syscall_flag == "36":
+                out_file.write("print_int_in_unsigned(a0);\n")
+            elif syscall_flag == "40":
+                out_file.write("set_seed(a0,a1);\n")
+            # probably an error ???
             else:
                 out_file.write("syscall(); // unknown ?\n")
             syscall_flag = -1
             counter += 1
             continue
+
+        ## ----- SETUP ----- ##
 
         # setup for syscall/return
         if chop[1] == "$v0":
@@ -228,6 +257,13 @@ def main(file):
                 continue
             if chop[0] == "move": # note possible return value in output
                 out_file.write(tab + "// return value ?\n")
+
+        # SET ON
+        if   chop[0] == "slt":
+            continue
+            # ... fuck
+
+        ## ----- CONTROL FLOW ----- ##
 
         # RETURN  - end of function
         if chop[0] == "jr" and chop[1] == "$ra":
@@ -251,6 +287,7 @@ def main(file):
             continue
 
         # BRANCH
+        # has one delay slot
         if chop[0] == "b":
             out_file.write(tab + "goto " + chop[1] + ";\n")
             continue
@@ -314,6 +351,8 @@ def main(file):
             out_file.write(tab + tab + chop[2] + "();\n")
             continue
 
+        ## ----- MEMORY ACCESS ----- ##
+
         # LOAD : immediate, address, byte, word
         if chop[0] == "lw" or chop[0] == "li" or chop[0] == "la" or chop[0] == "lb":
             out_file.write(tab + chop[1][1:] + " = " + chop[2] + ";\n")
@@ -337,7 +376,12 @@ def main(file):
             out_file.write(tab + chop[1][1:] + " = lo;\n")
             continue
 
-        ## MATH
+        ## ----- ARITHMETIC ----- ##
+
+        # NEG
+        if   chop[0] == "neg" or chop[0] == "negu":
+            out_file.write(tab + chop[1][1:] + " = -" + chop[2][1:] + ";\n")
+            continue
 
         # ADD
         if   chop[0] == "add" or chop[0] == "addu":
@@ -363,7 +407,7 @@ def main(file):
                 out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " * " + chop[3] + ";\n")
             continue
         # MULT, DIV, DIVU
-        # require using hi/lo special registers
+        # require using hi/lo special registers?
 
         # SHIFT
         if   chop[0] == "srl":
@@ -373,7 +417,7 @@ def main(file):
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " << " + chop[3] + ";\n")
             continue
 
-        ## LOGIC
+        ## ----- LOGIC ----- ##
 
         # AND
         if   chop[0] == "and":
@@ -412,6 +456,8 @@ def main(file):
         # NOP
         if chop[0] == "nop":
             continue
+
+        ## ----- MISC ----- ##
 
         # etc...
         out_file.write(tab + t + "\n")
