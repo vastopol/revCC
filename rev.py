@@ -223,7 +223,7 @@ def main(file):
                 out_file.write("exit2(a0);\n")
                 out_file.write("}\n\n")
                 fun_bounds = True
-            # start MARS specific syscalls
+            # MARS specific syscalls
             elif syscall_flag == "30":
                 out_file.write("time(a0,a1);\n") # a0,a1 probably passed by reference and written into ?
             elif syscall_flag == "31":
@@ -240,6 +240,35 @@ def main(file):
                 out_file.write("print_int_in_unsigned(a0);\n")
             elif syscall_flag == "40":
                 out_file.write("set_seed(a0,a1);\n")
+            elif syscall_flag == "41": # $a0 contains the next pseudorandom
+                out_file.write("random_int(a0);\n")
+            elif syscall_flag == "42": # $a0 contains the next pseudorandom
+                out_file.write("random_int_range(a0,a1);\n")
+            elif syscall_flag == "43": # $f0 contains the next pseudorandom
+                out_file.write("random_float(a0);\n")
+            elif syscall_flag == "44": # $f0 contains the next pseudorandom
+                out_file.write("random_double(a0);\n")
+            elif syscall_flag == "50": # $a0 contains value of user-chosen option
+                out_file.write("ConfirmDialog(a0);\n")
+            elif syscall_flag == "51":  # $a0 contains int read, $a1 contains status value
+                out_file.write("InputDialogInt(a0);\n")
+            elif syscall_flag == "52": # $f0 contains float read, $a1 contains status value
+                out_file.write("InputDialogFloat(a0);\n")
+            elif syscall_flag == "53": # $f0 contains double read, $a1 contains status value
+                out_file.write("InputDialogDouble(a0);\n")
+            elif syscall_flag == "54": # $a1 contains status value
+                out_file.write("InputDialogString(a0,a1,a2);\n")
+            elif syscall_flag == "55":
+                out_file.write("MessageDialog(a0,a1);\n")
+            elif syscall_flag == "56":
+                out_file.write("MessageDialogInt(a0,a1);\n")
+            elif syscall_flag == "57":
+                out_file.write("MessageDialogFloat(a0,f12);\n")
+            elif syscall_flag == "58":
+                out_file.write("MessageDialogDouble(a0,f12);\n")
+            elif syscall_flag == "59":
+                out_file.write("MessageDialogString(a0,a1);\n")
+
             # probably an error ???
             else:
                 out_file.write("syscall(); // unknown ?\n")
@@ -258,10 +287,19 @@ def main(file):
             if chop[0] == "move": # note possible return value in output
                 out_file.write(tab + "// return value ?\n")
 
-        # SET ON
-        if   chop[0] == "slt":
+        # SET LESS THAN
+        if   chop[0] == "slt" or chop[0] == "sltu":
+            out_file.write(tab + "if(" + chop[2][1:] + " < " + chop[3][1:] + ")\n")
+            out_file.write(tab + tab + chop[1][1:] + " = 1;\n")
+            out_file.write(tab + "else\n")
+            out_file.write(tab + tab + chop[1][1:] + " = 0;\n")
             continue
-            # ... fuck
+        elif chop[0] == "slti" or chop[0] == "sltiu":
+            out_file.write(tab + "if(" + chop[2][1:] + " < " + chop[3] + ")\n")
+            out_file.write(tab + tab + chop[1][1:] + " = 1;\n")
+            out_file.write(tab + "else\n")
+            out_file.write(tab + tab + chop[1][1:] + " = 0;\n")
+            continue
 
         ## ----- CONTROL FLOW ----- ##
 
@@ -354,13 +392,14 @@ def main(file):
         ## ----- MEMORY ACCESS ----- ##
 
         # LOAD : immediate, address, byte, word
+        # proably not 100% correct
         if chop[0] == "lw" or chop[0] == "li" or chop[0] == "la" or chop[0] == "lb":
             out_file.write(tab + chop[1][1:] + " = " + chop[2] + ";\n")
             counter += 1
             continue
 
         # STORE
-        # proably nor 100% correct for function calls
+        # proably not 100% correct
         if chop[0] == "sw" or chop[0] == "sb":
             out_file.write(tab + chop[2] + " = " + chop[1][1:] + ";\n")
             continue
@@ -399,8 +438,8 @@ def main(file):
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " - " + chop[3] + ";\n")
             continue
 
-        # MUL (pseduo op)
-        if   chop[0] == "mul": # without overflow
+        # MUL (pseduo-op without overflow)
+        if   chop[0] == "mul":
             if chop[3][0] == "$": # register
                 out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " * " + chop[3][1:] + ";\n")
             else: # immediate
@@ -410,11 +449,14 @@ def main(file):
         # require using hi/lo special registers?
 
         # SHIFT
-        if   chop[0] == "srl":
+        if   chop[0] == "srl" or chop[0] == "sra": # logical/arithmetic
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " >> " + chop[3] + ";\n")
             continue
         elif chop[0] == "sll":
             out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " << " + chop[3] + ";\n")
+            continue
+        elif chop[0] == "sllv": # variable shift
+            out_file.write(tab + chop[1][1:] + " = " + chop[2][1:] + " << " + chop[3][1:] + ";\n")
             continue
 
         ## ----- LOGIC ----- ##
@@ -453,11 +495,11 @@ def main(file):
             out_file.write(tab + chop[1][1:] + " = ~" + chop[2][1:] + ";\n")
             continue
 
+        ## ----- MISC ----- ##
+
         # NOP
         if chop[0] == "nop":
             continue
-
-        ## ----- MISC ----- ##
 
         # etc...
         out_file.write(tab + t + "\n")
