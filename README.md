@@ -8,6 +8,8 @@ Includes some simple recognition for common idioms and macros.
   * Mars assembler 4.4 is a lightweight interactive development environment (IDE) for programming in MIPS assembly language,
     intended for educational-level use with Patterson and Hennessy's Computer Organization and Design.
 
+https://www.doc.ic.ac.uk/lab/secondyear/spim/spim.html
+
 resources etc...
 
 * https://www.assemblylanguagetuts.com/mips-assembly-data-types/
@@ -42,9 +44,23 @@ online compilers
 * https://godbolt.org/
 * http://www.kurtm.net/mipsasm/index.cgi
 
+***
+
+https://chortle.ccsu.edu/AssemblyTutorial/Chapter-23/ass23_7.html
+http://www.cim.mcgill.ca/~langer/273/12-notes.pdf
+https://www.doc.ic.ac.uk/lab/secondyear/spim/node15.html
+https://courses.cs.washington.edu/courses/cse378/02au/Lectures/07controlI.pdf
+http://cs.brown.edu/courses/csci0310/content/lectures/L16.pdf
+http://www.divms.uiowa.edu/~ghosh/1-28-10.pdf
 
 never forget multiples of 4 are probably ints while chars are 1 byte long...
 
-
-
 http://www.dsi.unive.it/~gasparetto/materials/MIPS_Instruction_Set.pdf
+
+## note:
+
+almost all of the mini java programs don't have any commas between operands
+    manually corrected programs:
+        BinaryTree.asm
+        Factorial.asm
+

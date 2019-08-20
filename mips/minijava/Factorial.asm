@@ -5,11 +5,11 @@ vmt_Fac:
 
 .text
 
-  jal main
+  jal Main
   li $v0, 10
   syscall
 
-main:
+Main:
   sw $fp, -8($sp)
   move $fp, $sp
   subu $sp, $sp, 8

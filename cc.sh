@@ -1,17 +1,18 @@
 #!/bin/bash
 
-for F in mips/*.S
+F1=$(ls mips/*.asm)
+F2=$(ls mips/minijava/*)
+F3="$F1$F2"
+LL="----------------------------------------"
+
+for F in $F3
 do
-
     echo
-    ./rev.py $F
-    echo
-    echo "----------------------------------------"
-
-    echo
+    ./decomp.py $F
+    echo; echo $LL; echo
     cat $F.c
-    echo "----------------------------------------"
-
+    echo $LL
 done
 
 rm mips/*.c
+rm mips/minijava/*.c
